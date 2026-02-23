@@ -1,90 +1,108 @@
-# Event Calendar (Helsinki GSE seminars)
+# Helsinki GSE Seminar Digest
 
-A lightweight service that sends a **weekly Monday email digest** of Helsinki GSE seminar events scraped from:
+A fully automated weekly email digest of Helsinki GSE seminar events.
 
-- https://www.helsinkigse.fi/events
+**Subscribe:** https://helsinki-gse-seminar-digest.vercel.app/
 
-The email is the product: subscribers receive a list of upcoming seminars and can click **Add to calendar** buttons that open their calendar with the event pre-filled.
+Every Monday at 08:00 Helsinki time, subscribers receive an email listing that week's seminars with one-click **Add to Google Calendar**, **Add to Outlook**, and **Download .ics** buttons for each event.
 
-Important limitation: there is no single universal “add this event to any calendar” action available from plain email. The practical approach is:
+## How it works
 
-- **Google Calendar**: link opens Google Calendar with event details pre-filled.
-- **Outlook (web)**: link opens Outlook on the web with a pre-filled event.
-- **Apple Calendar / desktop clients**: fall back to an `.ics` link that opens the calendar app’s “add event” flow (no copy/paste; user typically just confirms).
+1. **Scraper** pulls events from [helsinkigse.fi/events](https://www.helsinkigse.fi/events) using BeautifulSoup
+2. Events are stored in **Supabase** (Postgres)
+3. **GitHub Actions** cron job runs every Monday — scrapes new events, then sends digests to all active subscribers
+4. Subscribers manage themselves via the **Flask app on Vercel** (subscribe, confirm, unsubscribe)
 
-## Product goals
+## Architecture
 
-- **Zero manual work after launch**: subscribe/unsubscribe must be fully self-serve.
-- **Lightweight + low volume**: designed for 10s–100s of subscribers.
-- **Reliable Monday delivery**: schedule-driven, idempotent, and deduplicated.
-- **Zero cost**: stay within free tiers; no always-on servers.
-
-## User experience (minimal, self-serve)
-
-1. Subscriber visits a simple subscribe page and enters their email.
-2. Service sends a **confirmation email** (double opt-in).
-3. Every Monday, subscriber receives the digest email.
-4. Each event in the digest has **Add to Google Calendar** / **Add to Outlook** buttons (and an Apple/other fallback).
-5. Every email contains a one-click **unsubscribe** link.
-
-No accounts, no dashboards, no ongoing admin work.
-
-## MVP architecture
-
-Serverless-first: no always-on web server. Everything runs as scheduled jobs or on-demand functions.
-
-| Concern | Solution | Cost |
+| Component | Technology | Cost |
 |---|---|---|
-| Weekly scrape + email job | **GitHub Actions cron** (runs every Monday) | $0 |
-| Subscribe / unsubscribe | **Cloudflare Worker** (or equivalent serverless function) | $0 |
-| Subscriber + event storage | **SQLite** (checked into repo or on persistent volume) or **Supabase free tier** | $0 |
-| Transactional email | **SendGrid** or **Postmark** free tier | $0 |
-| Add-to-calendar links | Google/Outlook deep links + `.ics` fallback served by the worker | $0 |
+| Weekly scrape + email | GitHub Actions cron | $0 |
+| Subscribe/unsubscribe | Flask on Vercel | $0 |
+| Database | Supabase (Postgres) | $0 |
+| Transactional email | SendGrid | $0 |
+| Calendar links | Google/Outlook deep links + .ics | — |
 
-### Why not FastAPI + managed Postgres + Render?
+## Project structure
 
-At 10–100 subscribers there is no need for an always-on server or a managed database. That stack is fine but adds cost and ops surface for no benefit at this scale. If usage grows beyond free-tier limits, migrating to an always-on service is straightforward.
+```
+src/scraper/
+  scraper.py          # Scrapes event pages from helsinkigse.fi
+  models.py           # Event and Subscriber dataclasses
+  db.py               # Supabase CRUD (events, subscribers, sent_log)
+  email_template.py   # HTML email rendering (inline CSS)
+  email_sender.py     # SendGrid integration (digest + confirmation emails)
+  calendar_links.py   # Google Calendar / Outlook URL generation
+  tokens.py           # HMAC token generation for confirm/unsubscribe
+  cli.py              # CLI entry point (scrape, store, send-test, send-digests)
 
-### Components
+api/
+  index.py            # Flask app (Vercel entry point)
 
-- **GitHub Actions workflow** (`.github/workflows/digest.yml`)
-	- Cron-triggered every Monday morning.
-	- Runs a Python script that: scrapes events → deduplicates → builds digest email → sends via email provider API.
-- **Serverless function** (Cloudflare Worker / AWS Lambda / Vercel function)
-	- `POST /subscribe` — stores email, sends confirmation link.
-	- `GET /confirm?token=…` — activates subscription.
-	- `GET /unsubscribe?token=…` — deactivates subscription.
-	- Serves a minimal HTML subscribe page.
-- **Storage**
-	- `subscribers` table: email, status (pending/active/unsubscribed), confirm_token, created_at.
-	- `events` table: title, starts_at, ends_at, location, description, event_hash, first_seen_at.
-	- `sent_log` table: subscriber_id, event_hash, sent_at (prevents re-sending).
-- **Email provider** (transactional API)
-	- Sends confirmation emails and weekly digests.
-	- Includes `List-Unsubscribe` header for deliverability.
-- **Add-to-calendar link generation**
-	- Generate **Google Calendar** and **Outlook web** “create event” links per event.
-	- Provide an `.ics` fallback endpoint for Apple Calendar and other clients.
+templates/            # HTML pages (subscribe, success, confirmed, unsubscribed, error)
 
-## Key implementation notes
+.github/workflows/
+  weekly-digest.yml   # Monday cron job
 
-- **Deduplication**: hash of (title + start time + source URL) as stable event identifier. Only email upcoming, not-yet-sent events.
-- **Timezone**: treat all times as `Europe/Helsinki` end-to-end.
-- **Scraping etiquette**: rate-limit requests; cache responses where sensible; respect robots/terms.
-- **Deliverability**: use a reputable transactional provider; include `List-Unsubscribe` headers.
-- **Double opt-in**: required by GDPR / CAN-SPAM. Confirmation tokens should be signed (HMAC) and time-limited.
+migrations/
+  001_initial.sql     # Database schema
+```
 
-## Configuration (env vars / secrets)
+## Subscription flow
 
-Set as GitHub Actions secrets and/or serverless function env vars:
+1. User enters email at the subscribe page
+2. Confirmation email sent (double opt-in, GDPR compliant)
+3. User clicks confirm link — subscription activated
+4. Every Monday: digest email with that week's events
+5. One-click unsubscribe link in every email footer
 
-- `APP_BASE_URL` — base URL of the serverless function (for links in emails)
-- `DATABASE_URL` — connection string (if using Supabase) or path to SQLite
-- `EMAIL_API_KEY` — SendGrid / Postmark API key
-- `EMAIL_FROM` — verified sender address
-- `SECRET_KEY` — HMAC key for signing confirm/unsubscribe tokens
-- `SCRAPE_SOURCE_URL` — default: `https://www.helsinkigse.fi/events`
+## CLI usage
 
-## Status
+```bash
+# Scrape all events and print JSON
+scrape-events
 
-Repository initialized; implementation in progress.
+# Scrape and store in Supabase
+scrape-events --store
+
+# Preview digest as local HTML file
+scrape-events --preview-html digest.html
+
+# Send test digest to a specific email
+scrape-events --send-test you@example.com
+
+# Send weekly digests to all active subscribers (production)
+scrape-events --send-digests
+```
+
+## Environment variables
+
+Set in `.env` for local dev, in Vercel dashboard for production, and as GitHub Actions secrets for the cron job:
+
+| Variable | Description |
+|---|---|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_KEY` | Supabase service role key |
+| `SENDGRID_API_KEY` | SendGrid API key (Mail Send permission) |
+| `EMAIL_FROM` | Verified sender email address |
+| `SECRET_KEY` | HMAC key for signing confirm/unsubscribe tokens |
+| `APP_BASE_URL` | Production URL (https://helsinki-gse-seminar-digest.vercel.app) |
+
+## Email features
+
+- Category badges per event (e.g., "Environmental Economics", "PhD Seminar")
+- Calendar titles use "Series: Speaker" format (e.g., "Environmental Economics Seminar: Benjamin Hattemer")
+- Google Calendar, Outlook, and .ics download buttons
+- Per-subscriber unsubscribe links with HMAC tokens
+- Digest scoped to current week (Monday–Sunday)
+
+## Local development
+
+```bash
+# Install dependencies
+pip install -e .
+
+# Run Flask app locally
+python -c "from api.index import app; app.run(debug=True)"
+# → http://localhost:5000
+```

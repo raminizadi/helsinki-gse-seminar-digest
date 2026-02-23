@@ -1,0 +1,37 @@
+name: Weekly Digest
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC (08:00 Helsinki time)
+    - cron: "0 6 * * 1"
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install .
+
+      - name: Scrape events and store in Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: scrape-events --store > /dev/null
+
+      - name: Send digests to subscribers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+        run: scrape-events --send-digests > /dev/null

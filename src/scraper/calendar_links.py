@@ -29,6 +29,33 @@ def _format_gcal_dt(dt: datetime.datetime) -> str:
     return dt.strftime("%Y%m%dT%H%M%S")
 
 
+def _calendar_title(event: Event) -> str:
+    """Build calendar event title as 'Series Seminar: Speaker'.
+
+    Combines the research group (e.g. "Environmental Economics") with "Seminar"
+    to form the series name. If a category already contains "seminar"
+    (e.g. "Lunch Seminar", "PhD Seminar"), use it as-is.
+    """
+    # Find the research group (category without "seminar" in it)
+    group = next((c for c in event.categories if "seminar" not in c.lower()), None)
+    # Find the seminar type (category with "seminar" in it)
+    seminar_cats = [c for c in event.categories if "seminar" in c.lower()]
+    seminar_type = max(seminar_cats, key=len) if seminar_cats else None
+
+    if group and seminar_type and seminar_type.lower() == "seminar":
+        # "Environmental Economics" + "Seminar" -> "Environmental Economics Seminar"
+        series = f"{group} Seminar"
+    elif seminar_type:
+        # "Lunch Seminar", "PhD Seminar", "Brown Bag Seminar" — use as-is
+        series = seminar_type
+    elif group:
+        series = group
+    else:
+        return f"{event.speaker}: {event.title}"
+
+    return f"{series}: {event.speaker}"
+
+
 def _event_description(event: Event) -> str:
     """Build a description string for calendar entries."""
     parts: list[str] = []
@@ -37,6 +64,8 @@ def _event_description(event: Event) -> str:
         if event.institution:
             line += f" ({event.institution})"
         parts.append(line)
+    if event.title:
+        parts.append(event.title)
     if event.description and event.description != event.title:
         parts.append(event.description)
     parts.append(f"Details: {event.url}")
@@ -51,7 +80,7 @@ def google_calendar_url(event: Event) -> str:
     start, end = _event_datetimes(event)
     params = {
         "action": "TEMPLATE",
-        "text": event.title,
+        "text": _calendar_title(event),
         "dates": f"{_format_gcal_dt(start)}/{_format_gcal_dt(end)}",
         "ctz": TIMEZONE,
         "details": _event_description(event),
@@ -71,7 +100,7 @@ def outlook_calendar_url(event: Event) -> str:
     # Outlook expects ISO 8601 format
     params = {
         "rru": "addevent",
-        "subject": event.title,
+        "subject": _calendar_title(event),
         "startdt": start.isoformat(),
         "enddt": end.isoformat(),
         "body": _event_description(event),

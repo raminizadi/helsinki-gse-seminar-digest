@@ -204,9 +204,25 @@ def parse_event_page(html: str, url: str) -> Event | None:
                     break
             break
 
-    # -- Type (category): line after "Type:" --
-    category = _get_field_after(lines, "Type:")
-    categories = [category] if category else []
+    # -- Categories: extract from chip elements (Organizer group + Type) --
+    categories: list[str] = []
+    seen = set()
+    for chip in soup.find_all("span", class_="chip"):
+        text = chip.get_text(strip=True)
+        if text and text.lower() not in seen:
+            seen.add(text.lower())
+            categories.append(text)
+
+    # Fallback: parse from text lines if no chips found
+    if not categories:
+        labels = {"type:", "host:", "hosts:", "venue:", "organizer:", "actions:"}
+        category = _get_field_after(lines, "Type:")
+        if category and category.lower() not in labels:
+            categories.append(category)
+        organizer_group = _get_field_after(lines, "Organizer:")
+        if organizer_group and organizer_group.lower() not in labels:
+            if not category or organizer_group.lower() != category.lower():
+                categories.insert(0, organizer_group)
 
     # -- Host / Organizer: line(s) after "Host:" --
     host = _get_field_after(lines, "Host:")

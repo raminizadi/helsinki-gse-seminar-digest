@@ -20,9 +20,6 @@ DATE_STYLE = "font-size: 13px; color: #718096; margin: 0 0 6px; text-transform: 
 TITLE_STYLE = "font-size: 17px; font-weight: 600; color: #1a202c; margin: 0 0 6px; line-height: 1.4;"
 META_STYLE = "font-size: 14px; color: #4a5568; margin: 0 0 4px;"
 CATEGORY_STYLE = "display: inline-block; background: #ebf4ff; color: #2b6cb0; font-size: 12px; padding: 2px 8px; border-radius: 4px; margin-right: 4px;"
-FILTER_BAR_STYLE = "padding: 12px 0 8px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0;"
-FILTER_LABEL_STYLE = "font-size: 12px; color: #718096; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;"
-FILTER_TAG_STYLE = "display: inline-block; background: #ebf4ff; color: #2b6cb0; font-size: 13px; padding: 4px 12px; border-radius: 16px; margin-right: 6px; margin-bottom: 6px; text-decoration: none;"
 BUTTONS_STYLE = "margin-top: 14px;"
 BTN_GOOGLE_STYLE = "display: inline-block; background: #4285f4; color: #ffffff; text-decoration: none; padding: 8px 14px; border-radius: 4px; font-size: 13px; font-weight: 500; margin-right: 8px;"
 BTN_OUTLOOK_STYLE = "display: inline-block; background: #0078d4; color: #ffffff; text-decoration: none; padding: 8px 14px; border-radius: 4px; font-size: 13px; font-weight: 500; margin-right: 8px;"
@@ -49,7 +46,7 @@ def _format_date(event: Event) -> str:
     return ", ".join(parts)
 
 
-def _render_event(event: Event, anchor_id: str = "") -> str:
+def _render_event(event: Event) -> str:
     """Render a single event card."""
     gcal = google_calendar_url(event)
     outlook = outlook_calendar_url(event)
@@ -71,10 +68,8 @@ def _render_event(event: Event, anchor_id: str = "") -> str:
     if event.institution:
         speaker_line += f" ({escape(event.institution)})"
 
-    anchor = f' id="{anchor_id}"' if anchor_id else ""
-
     return f"""
-    <div style="{CARD_STYLE}"{anchor}>
+    <div style="{CARD_STYLE}">
       {category_html}
       <p style="{DATE_STYLE}">{escape(_format_date(event))}</p>
       <p style="{TITLE_STYLE}">{escape(event.title)}</p>
@@ -102,31 +97,7 @@ def render_digest(
     today = datetime.date.today()
     week_label = f"Week of {today.day} {MONTHS[today.month]} {today.year}"
 
-    # Build unique tag list and map each tag to an anchor ID
-    tag_anchors: dict[str, str] = {}  # tag -> anchor id of first event with that tag
-    for i, event in enumerate(events):
-        for cat in event.categories:
-            if cat not in tag_anchors:
-                tag_anchors[cat] = f"event-{i}"
-
-    # Render event cards with anchor IDs
-    event_cards = "\n".join(
-        _render_event(e, anchor_id=f"event-{i}")
-        for i, e in enumerate(events)
-    )
-
-    # Render filter bar with clickable tag badges
-    filter_bar = ""
-    if tag_anchors:
-        tag_links = " ".join(
-            f'<a href="#{anchor}" style="{FILTER_TAG_STYLE}">{escape(tag)}</a>'
-            for tag, anchor in tag_anchors.items()
-        )
-        filter_bar = f"""
-      <div style="{FILTER_BAR_STYLE}">
-        <p style="{FILTER_LABEL_STYLE}">This week's series</p>
-        {tag_links}
-      </div>"""
+    event_cards = "\n".join(_render_event(e) for e in events)
 
     no_events_msg = ""
     if not events:
@@ -142,7 +113,6 @@ def render_digest(
       <p style="{HEADER_SUB_STYLE}">{escape(week_label)} &middot; {len(events)} upcoming event{"s" if len(events) != 1 else ""}</p>
     </div>
     <div style="{CONTENT_STYLE}">
-      {filter_bar}
       {no_events_msg}
       {event_cards}
     </div>

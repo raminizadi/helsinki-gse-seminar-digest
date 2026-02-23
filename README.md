@@ -1,37 +1,89 @@
 # Event Calendar (Helsinki GSE seminars)
 
-A lightweight calendar tool that runs every **Monday**, scrapes seminar events from:
+A lightweight service that sends a **weekly Monday email digest** of Helsinki GSE seminar events scraped from:
 
 - https://www.helsinkigse.fi/events
 
-…and emails subscribers a weekly digest where they can choose which events to add to their calendars (Outlook / Google Calendar / Apple Calendar).
+The email is the product: subscribers receive a list of upcoming seminars and can click **Add to calendar** buttons that open their calendar with the event pre-filled.
 
-## What it does
+Important limitation: there is no single universal “add this event to any calendar” action available from plain email. The practical approach is:
 
-- Scrapes the events page and extracts seminar event details (title, date/time, location, description, link).
-- Deduplicates events so the same seminar isn’t re-sent every week.
-- Sends an email to subscribers with a list of upcoming seminars.
-- Provides **Add to calendar** links via standard `.ics` files (works across Outlook, Google Calendar, and Apple Calendar).
+- **Google Calendar**: link opens Google Calendar with event details pre-filled.
+- **Outlook (web)**: link opens Outlook on the web with a pre-filled event.
+- **Apple Calendar / desktop clients**: fall back to an `.ics` link that opens the calendar app’s “add event” flow (no copy/paste; user typically just confirms).
 
-## Planned high-level architecture
+## Product goals
 
-- **Scheduler**: weekly job (Monday) to fetch + parse events.
-- **Storage**: persist subscribers and previously-seen events (DB or a lightweight store).
-- **Mailer**: send email digests (SMTP or an email provider).
-- **Calendar**: generate `.ics` per event (and/or a combined weekly `.ics`).
+- **Zero manual work after launch**: subscribe/unsubscribe must be fully self-serve.
+- **Lightweight + low volume**: designed for 10s–100s of subscribers.
+- **Reliable Monday delivery**: schedule-driven, idempotent, and deduplicated.
+- **Zero cost**: stay within free tiers; no always-on servers.
 
-## Notes / constraints
+## User experience (minimal, self-serve)
 
-- Be polite when scraping (rate-limit requests) and respect the website’s terms/robots policy.
-- Times/timezones should be handled consistently (Europe/Helsinki).
+1. Subscriber visits a simple subscribe page and enters their email.
+2. Service sends a **confirmation email** (double opt-in).
+3. Every Monday, subscriber receives the digest email.
+4. Each event in the digest has **Add to Google Calendar** / **Add to Outlook** buttons (and an Apple/other fallback).
+5. Every email contains a one-click **unsubscribe** link.
 
-## Setup (to be implemented)
+No accounts, no dashboards, no ongoing admin work.
 
-When code is added, this project will likely need environment variables for:
+## MVP architecture
 
-- Email sending (SMTP host/user/pass or API key)
-- Subscriber storage (database connection)
-- App base URL (for links in emails)
+Serverless-first: no always-on web server. Everything runs as scheduled jobs or on-demand functions.
+
+| Concern | Solution | Cost |
+|---|---|---|
+| Weekly scrape + email job | **GitHub Actions cron** (runs every Monday) | $0 |
+| Subscribe / unsubscribe | **Cloudflare Worker** (or equivalent serverless function) | $0 |
+| Subscriber + event storage | **SQLite** (checked into repo or on persistent volume) or **Supabase free tier** | $0 |
+| Transactional email | **SendGrid** or **Postmark** free tier | $0 |
+| Add-to-calendar links | Google/Outlook deep links + `.ics` fallback served by the worker | $0 |
+
+### Why not FastAPI + managed Postgres + Render?
+
+At 10–100 subscribers there is no need for an always-on server or a managed database. That stack is fine but adds cost and ops surface for no benefit at this scale. If usage grows beyond free-tier limits, migrating to an always-on service is straightforward.
+
+### Components
+
+- **GitHub Actions workflow** (`.github/workflows/digest.yml`)
+	- Cron-triggered every Monday morning.
+	- Runs a Python script that: scrapes events → deduplicates → builds digest email → sends via email provider API.
+- **Serverless function** (Cloudflare Worker / AWS Lambda / Vercel function)
+	- `POST /subscribe` — stores email, sends confirmation link.
+	- `GET /confirm?token=…` — activates subscription.
+	- `GET /unsubscribe?token=…` — deactivates subscription.
+	- Serves a minimal HTML subscribe page.
+- **Storage**
+	- `subscribers` table: email, status (pending/active/unsubscribed), confirm_token, created_at.
+	- `events` table: title, starts_at, ends_at, location, description, event_hash, first_seen_at.
+	- `sent_log` table: subscriber_id, event_hash, sent_at (prevents re-sending).
+- **Email provider** (transactional API)
+	- Sends confirmation emails and weekly digests.
+	- Includes `List-Unsubscribe` header for deliverability.
+- **Add-to-calendar link generation**
+	- Generate **Google Calendar** and **Outlook web** “create event” links per event.
+	- Provide an `.ics` fallback endpoint for Apple Calendar and other clients.
+
+## Key implementation notes
+
+- **Deduplication**: hash of (title + start time + source URL) as stable event identifier. Only email upcoming, not-yet-sent events.
+- **Timezone**: treat all times as `Europe/Helsinki` end-to-end.
+- **Scraping etiquette**: rate-limit requests; cache responses where sensible; respect robots/terms.
+- **Deliverability**: use a reputable transactional provider; include `List-Unsubscribe` headers.
+- **Double opt-in**: required by GDPR / CAN-SPAM. Confirmation tokens should be signed (HMAC) and time-limited.
+
+## Configuration (env vars / secrets)
+
+Set as GitHub Actions secrets and/or serverless function env vars:
+
+- `APP_BASE_URL` — base URL of the serverless function (for links in emails)
+- `DATABASE_URL` — connection string (if using Supabase) or path to SQLite
+- `EMAIL_API_KEY` — SendGrid / Postmark API key
+- `EMAIL_FROM` — verified sender address
+- `SECRET_KEY` — HMAC key for signing confirm/unsubscribe tokens
+- `SCRAPE_SOURCE_URL` — default: `https://www.helsinkigse.fi/events`
 
 ## Status
 

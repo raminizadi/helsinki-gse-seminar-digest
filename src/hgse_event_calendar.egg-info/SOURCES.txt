@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/hgse_event_calendar.egg-info/PKG-INFO
+src/hgse_event_calendar.egg-info/SOURCES.txt
+src/hgse_event_calendar.egg-info/dependency_links.txt
+src/hgse_event_calendar.egg-info/entry_points.txt
+src/hgse_event_calendar.egg-info/requires.txt
+src/hgse_event_calendar.egg-info/top_level.txt
+src/scraper/__init__.py
+src/scraper/cli.py
+src/scraper/db.py
+src/scraper/models.py
+src/scraper/scraper.py

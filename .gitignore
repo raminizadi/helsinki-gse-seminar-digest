@@ -26,3 +26,5 @@ __pycache__/
 
 # Misc
 *.log
+digest.html
+.claude/

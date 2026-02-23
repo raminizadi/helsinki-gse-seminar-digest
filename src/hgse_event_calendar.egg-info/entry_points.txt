@@ -1,0 +1,2 @@
+[console_scripts]
+scrape-events = scraper.cli:main

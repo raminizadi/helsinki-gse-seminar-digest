@@ -50,13 +50,16 @@ def main() -> None:
     )
     log = logging.getLogger(__name__)
 
-    events = scrape_all_events(limit=args.limit)
-    output = [e.to_dict() for e in events]
-    print(json.dumps(output, indent=2))
+    # Only scrape if we need to (store, preview, or send-test).
+    # --send-digests reads from Supabase directly; no need to scrape.
+    if args.store or args.preview_html or args.send_test or not args.send_digests:
+        events = scrape_all_events(limit=args.limit)
+        output = [e.to_dict() for e in events]
+        print(json.dumps(output, indent=2))
 
-    if args.store:
-        from scraper.db import upsert_events
-        upsert_events(events)
+        if args.store:
+            from scraper.db import upsert_events
+            upsert_events(events)
 
     if args.preview_html or args.send_test:
         from scraper.email_template import render_digest

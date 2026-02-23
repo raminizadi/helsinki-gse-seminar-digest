@@ -66,36 +66,45 @@ def upsert_events(events: list[Event]) -> int:
     return count
 
 
-def get_upcoming_events(from_date: datetime.date | None = None) -> list[Event]:
-    """Return events with date >= from_date, sorted by date/time."""
+def get_upcoming_events(
+    from_date: datetime.date | None = None,
+    until_date: datetime.date | None = None,
+) -> list[Event]:
+    """Return events with date >= from_date (and <= until_date if given)."""
     if from_date is None:
         from_date = datetime.date.today()
 
     client = get_client()
-    result = (
+    query = (
         client.table("events")
         .select("*")
         .gte("date", from_date.isoformat())
-        .order("date")
-        .order("start_time")
-        .execute()
     )
+    if until_date is not None:
+        query = query.lte("date", until_date.isoformat())
+    result = query.order("date").order("start_time").execute()
     return [_row_to_event(r) for r in (result.data or [])]
 
 
-def get_unsent_events(subscriber_id: int, from_date: datetime.date | None = None) -> list[Event]:
-    """Return upcoming events not yet sent to a given subscriber."""
+def get_week_events(
+    from_date: datetime.date | None = None,
+) -> list[Event]:
+    """Return events for the week starting at from_date (Mon–Sun)."""
     if from_date is None:
         from_date = datetime.date.today()
+    # Go to the Monday of this week
+    monday = from_date - datetime.timedelta(days=from_date.weekday())
+    sunday = monday + datetime.timedelta(days=6)
+    return get_upcoming_events(from_date=monday, until_date=sunday)
 
-    client = get_client()
-    # Use an RPC call or a manual query via PostgREST filtering.
-    # PostgREST doesn't support NOT IN subqueries directly,
-    # so we fetch upcoming events and sent hashes separately, then diff.
-    upcoming = get_upcoming_events(from_date)
+
+def get_unsent_events(subscriber_id: int) -> list[Event]:
+    """Return this week's events not yet sent to a given subscriber."""
+    upcoming = get_week_events()
     if not upcoming:
         return []
 
+    client = get_client()
     sent_result = (
         client.table("sent_log")
         .select("event_hash")

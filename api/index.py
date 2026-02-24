@@ -131,7 +131,7 @@ def calendar_feed(series):
     helsinki = ZoneInfo("Europe/Helsinki")
 
     cal = Calendar()
-    cal.add("prodid", "-//Helsinki GSE Seminar Digest//EN")
+    cal.add("prodid", "-//HGSE Seminar Hub//EN")
     cal.add("version", "2.0")
     cal.add("x-wr-calname", f"HGSE: {category}")
     cal.add("x-wr-timezone", "Europe/Helsinki")

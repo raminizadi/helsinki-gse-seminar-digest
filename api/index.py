@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import sys
@@ -15,7 +16,8 @@ from flask import Flask, render_template, request
 load_dotenv()  # for local development; Vercel uses env vars from dashboard
 
 from scraper import db
-from scraper.email_sender import send_confirmation
+from scraper.email_sender import send_confirmation, send_digest
+from scraper.email_template import render_digest
 from scraper.tokens import generate_token, verify_token
 
 logging.basicConfig(level=logging.INFO)
@@ -64,7 +66,39 @@ def confirm():
         return render_template("error.html", message="Invalid or expired confirmation link."), 400
 
     db.activate_subscriber(email)
-    return render_template("confirmed.html")
+
+    # Send this week's digest immediately
+    digest_sent = _send_immediate_digest(email)
+    if digest_sent:
+        message = "You'll receive a weekly digest every Monday. Your first digest is on its way — check your inbox!"
+    else:
+        message = "You'll receive a weekly digest of upcoming Helsinki GSE seminars every Monday."
+
+    return render_template("confirmed.html", message=message)
+
+
+def _send_immediate_digest(email: str) -> bool:
+    """Send this week's events to a newly confirmed subscriber. Returns True if sent."""
+    try:
+        events = db.get_week_events()
+        if not events:
+            return False
+
+        base_url = os.environ.get("APP_BASE_URL", "").rstrip("/")
+        unsub_token = generate_token(email, "unsubscribe")
+        unsub_url = f"{base_url}/unsubscribe?email={email}&token={unsub_token}"
+
+        html = render_digest(events, unsubscribe_url=unsub_url)
+
+        today = datetime.date.today()
+        months = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        subject = f"Helsinki GSE Seminars — Week of {today.day} {months[today.month]} {today.year}"
+
+        return send_digest(email, subject, html, unsubscribe_url=unsub_url)
+    except Exception:
+        logger.exception("Failed to send immediate digest to %s", email)
+        return False
 
 
 @app.route("/unsubscribe")

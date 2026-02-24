@@ -5,18 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Unsubscribed</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 40px 16px; color: #1a202c; }
-    .card { max-width: 440px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
-    h1 { color: #1a365d; font-size: 22px; margin-top: 0; }
-    p { line-height: 1.6; color: #4a5568; }
-    a { color: #1a365d; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f5f5f5; color: #1a202c; min-height: 100vh; display: flex; flex-direction: column; }
+    .header { background: #1a365d; color: #fff; padding: 32px 16px; text-align: center; }
+    .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+    .header p { font-size: 15px; color: #cbd5e0; }
+    .main { flex: 1; max-width: 520px; width: 100%; margin: -24px auto 0; padding: 0 16px 32px; position: relative; z-index: 1; }
+    .card { background: #fff; border-radius: 8px; padding: 32px 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+    .card h2 { font-size: 20px; color: #1a365d; margin-bottom: 12px; }
+    .card p { line-height: 1.6; color: #4a5568; font-size: 15px; margin-bottom: 8px; }
+    .card a { color: #1a365d; font-weight: 500; }
+    .footer { text-align: center; padding: 24px 16px 32px; font-size: 12px; color: #a0aec0; line-height: 1.8; }
+    .footer a { color: #718096; text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Unsubscribed</h1>
-    <p>You've been removed from the Helsinki GSE seminar digest. You won't receive any more emails.</p>
-    <p><a href="/">Changed your mind? Subscribe again.</a></p>
+  <div class="header">
+    <h1>Helsinki GSE Seminar Digest</h1>
+    <p>Weekly email with upcoming seminars &amp; calendar links</p>
+  </div>
+  <div class="main">
+    <div class="card">
+      <h2>Unsubscribed</h2>
+      <p>You've been removed from the digest. You won't receive any more emails.</p>
+      <p><a href="/">Changed your mind? Subscribe again.</a></p>
+    </div>
+  </div>
+  <div class="footer">
+    <p>Built by Ramin Izadi &middot; Not affiliated with Helsinki GSE</p>
+    <p>
+      <a href="https://github.com/raminizadi/helsinki-gse-seminar-digest" target="_blank">GitHub</a>
+      &middot; <a href="https://github.com/raminizadi/helsinki-gse-seminar-digest/issues" target="_blank">Report a bug or request a feature</a>
+    </p>
   </div>
 </body>
 </html>

@@ -42,7 +42,7 @@
     .feed-btns { display: flex; gap: 6px; }
     .feed-btn { font-size: 11px; text-decoration: none; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: opacity 0.15s; }
     .feed-btn:hover { opacity: 0.85; }
-    .feed-btn.gcal { background: #4285f4; color: #fff; }
+    .feed-btn.copy { background: #4285f4; color: #fff; cursor: pointer; border: none; }
     .feed-btn.outlook { background: #0078d4; color: #fff; }
     .feed-btn.ics { background: #e2e8f0; color: #4a5568; }
 
@@ -95,7 +95,8 @@
       </p>
       <div class="feeds-list" id="feeds-list"></div>
       <p style="font-size: 12px; color: #a0aec0; margin-top: 12px; line-height: 1.5;">
-        Google Calendar and Outlook open directly. The .ics link works with Apple Calendar and other apps.
+        <strong>Google Calendar:</strong> Copy link &rarr; Settings &rarr; Add calendar &rarr; From URL &rarr; paste.<br>
+        <strong>Outlook:</strong> opens directly. <strong>.ics:</strong> works with Apple Calendar and other apps.
       </p>
       <script>
         var feeds = [
@@ -111,17 +112,25 @@
         var list = document.getElementById("feeds-list");
         feeds.forEach(function(f) {
           var icsUrl = base + f[1] + ".ics";
-          var gcalUrl = "https://calendar.google.com/calendar/render?cid=" + encodeURIComponent(icsUrl);
           var outlookUrl = "https://outlook.office.com/calendar/0/addfromweb?url=" + encodeURIComponent(icsUrl) + "&name=" + encodeURIComponent("HGSE: " + f[0]);
           var row = document.createElement("div");
           row.className = "feed-row";
           row.innerHTML = '<span class="feed-name">' + f[0] + '</span>'
             + '<div class="feed-btns">'
-            + '<a class="feed-btn gcal" href="' + gcalUrl + '" target="_blank">Google</a>'
+            + '<button class="feed-btn copy" data-url="' + icsUrl + '" title="Copy feed URL for Google Calendar">Copy link</button>'
             + '<a class="feed-btn outlook" href="' + outlookUrl + '" target="_blank">Outlook</a>'
             + '<a class="feed-btn ics" href="' + icsUrl + '">.ics</a>'
             + '</div>';
           list.appendChild(row);
+        });
+        document.getElementById("feeds-list").addEventListener("click", function(e) {
+          var btn = e.target.closest(".copy");
+          if (!btn) return;
+          navigator.clipboard.writeText(btn.dataset.url).then(function() {
+            var orig = btn.textContent;
+            btn.textContent = "Copied!";
+            setTimeout(function() { btn.textContent = orig; }, 1500);
+          });
         });
       </script>
     </div>

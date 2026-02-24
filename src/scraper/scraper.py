@@ -303,7 +303,11 @@ def scrape_all_events(limit: int | None = None) -> list[Event]:
             logger.error("Failed to fetch %s: %s", url, e)
             continue
 
-        event = parse_event_page(resp.text, url)
+        try:
+            event = parse_event_page(resp.text, url)
+        except Exception as e:
+            logger.error("Failed to parse %s: %s", url, e)
+            continue
         if event:
             events.append(event)
         else:

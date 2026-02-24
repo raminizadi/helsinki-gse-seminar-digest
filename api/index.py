@@ -124,7 +124,11 @@ def calendar_feed(series):
     category = SERIES[series]
     events = db.get_upcoming_events()
 
+    from zoneinfo import ZoneInfo
+
     from icalendar import Calendar, Event as IcsEvent
+
+    helsinki = ZoneInfo("Europe/Helsinki")
 
     cal = Calendar()
     cal.add("prodid", "-//Helsinki GSE Seminar Digest//EN")
@@ -141,10 +145,10 @@ def calendar_feed(series):
         ics_event.add("uid", f"{ev.event_hash}@helsinki-gse-seminar-digest")
 
         if ev.start_time:
-            dt_start = datetime.datetime.combine(ev.date, ev.start_time)
+            dt_start = datetime.datetime.combine(ev.date, ev.start_time, tzinfo=helsinki)
             ics_event.add("dtstart", dt_start)
             if ev.end_time:
-                dt_end = datetime.datetime.combine(ev.date, ev.end_time)
+                dt_end = datetime.datetime.combine(ev.date, ev.end_time, tzinfo=helsinki)
                 ics_event.add("dtend", dt_end)
         else:
             ics_event.add("dtstart", ev.date)

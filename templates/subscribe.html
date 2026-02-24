@@ -64,41 +64,10 @@
   </div>
 
   <div class="main">
-    <!-- Left column: Email digest -->
+    <!-- Left column: Calendar feeds -->
     <div class="col">
       <div class="card">
-        <h2>Email digest</h2>
-        <ul class="features">
-          <li>This week's Helsinki GSE seminars, every Monday at 08:00</li>
-          <li>One-click Google Calendar, Outlook, and .ics buttons</li>
-          <li>Your first digest arrives immediately after confirming</li>
-        </ul>
-        <form method="POST" action="/subscribe">
-          <input type="email" name="email" placeholder="your@email.com" required>
-          <button type="submit">Subscribe</button>
-        </form>
-        <p class="schedule">Delivered every Monday &middot; Unsubscribe anytime</p>
-      </div>
-
-      <!-- Sample preview -->
-      <div class="card">
-        <p class="preview-label">Sample from a recent digest</p>
-        <div class="sample-card">
-          <span class="sample-badge">Environmental Economics</span>
-          <p class="sample-date">MON 24 FEB, 12:15&ndash;13:15</p>
-          <p class="sample-title">Environmental Economics Seminar: Benjamin Hattemer</p>
-          <p class="sample-meta">Benjamin Hattemer (University of Mannheim)</p>
-          <div class="sample-btns">
-            <span class="sample-btn gcal">Google Calendar</span>
-            <span class="sample-btn outlook">Outlook</span>
-            <span class="sample-btn ics">.ics</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right column: Calendar feeds -->
-    <div class="col">
+        <h2>Calendar feeds</h2>
       <div class="card">
         <h2>Calendar feeds</h2>
         <p style="font-size: 14px; color: #4a5568; margin-bottom: 14px; line-height: 1.5;">
@@ -136,6 +105,40 @@
             list.appendChild(row);
           });
         </script>
+      </div>
+    </div>
+
+    <!-- Right column: Email digest -->
+    <div class="col">
+      <div class="card">
+        <h2>Email digest</h2>
+        <ul class="features">
+          <li>This week's Helsinki GSE seminars, every Monday at 08:00</li>
+          <li>One-click Google Calendar, Outlook, and .ics buttons</li>
+          <li>Great for checking out seminars not in your calendar</li>
+          <li>Your first digest arrives immediately after confirming</li>
+        </ul>
+        <form method="POST" action="/subscribe">
+          <input type="email" name="email" placeholder="your@email.com" required>
+          <button type="submit">Subscribe</button>
+        </form>
+        <p class="schedule">Delivered every Monday &middot; Unsubscribe anytime</p>
+
+        <!-- Sample preview -->
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+          <p class="preview-label">Sample from a recent digest</p>
+          <div class="sample-card">
+            <span class="sample-badge">Environmental Economics</span>
+            <p class="sample-date">MON 24 FEB, 12:15&ndash;13:15</p>
+            <p class="sample-title">Environmental Economics Seminar: Benjamin Hattemer</p>
+            <p class="sample-meta">Benjamin Hattemer (University of Mannheim)</p>
+            <div class="sample-btns">
+              <span class="sample-btn gcal">Google Calendar</span>
+              <span class="sample-btn outlook">Outlook</span>
+              <span class="sample-btn ics">.ics</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

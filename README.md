@@ -15,6 +15,24 @@ Every Monday at 08:00 Helsinki time, subscribers receive an email listing that w
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    User["👤 Subscriber"]
+    Vercel["Vercel\n(Flask app)"]
+    Supabase[("Supabase\n(Postgres)")]
+    SendGrid["SendGrid"]
+    GHA["GitHub Actions\n(weekly cron)"]
+    GSE["helsinkigse.fi"]
+
+    User -- "subscribe / confirm / unsubscribe" --> Vercel
+    Vercel -- "read/write subscribers" --> Supabase
+    Vercel -- "confirmation email" --> SendGrid
+    GHA -- "scrape events" --> GSE
+    GHA -- "store events, read subscribers" --> Supabase
+    GHA -- "send digests" --> SendGrid
+    SendGrid -- "emails" --> User
+```
+
 | Component | Technology | Cost |
 |---|---|---|
 | Weekly scrape + email | GitHub Actions cron | $0 |

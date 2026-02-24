@@ -52,7 +52,7 @@ migrations/
 
 1. User enters email at the subscribe page
 2. Confirmation email sent (double opt-in, GDPR compliant)
-3. User clicks confirm link — subscription activated
+3. User clicks confirm link — subscription activated, first digest sent immediately
 4. Every Monday: digest email with that week's events
 5. One-click unsubscribe link in every email footer
 
@@ -95,6 +95,10 @@ Set in `.env` for local dev, in Vercel dashboard for production, and as GitHub A
 - Google Calendar, Outlook, and .ics download buttons
 - Per-subscriber unsubscribe links with HMAC tokens
 - Digest scoped to current week (Monday–Sunday)
+
+## Disclaimer
+
+This is a personal hobby project by [Ramin Izadi](https://github.com/raminizadi) and is not affiliated with Helsinki GSE. Found a bug or have a feature request? [Open an issue](https://github.com/raminizadi/helsinki-gse-seminar-digest/issues).
 
 ## Local development
 

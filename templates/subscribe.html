@@ -39,8 +39,12 @@
     .feeds-list { display: flex; flex-direction: column; gap: 8px; }
     .feed-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f7fafc; border-radius: 6px; }
     .feed-name { font-size: 14px; color: #1a202c; font-weight: 500; }
-    .feed-btn { font-size: 12px; color: #2b6cb0; text-decoration: none; font-weight: 500; padding: 4px 10px; border: 1px solid #bee3f8; border-radius: 4px; background: #ebf4ff; transition: background 0.15s; }
-    .feed-btn:hover { background: #bee3f8; }
+    .feed-btns { display: flex; gap: 6px; }
+    .feed-btn { font-size: 11px; text-decoration: none; font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: opacity 0.15s; }
+    .feed-btn:hover { opacity: 0.85; }
+    .feed-btn.gcal { background: #4285f4; color: #fff; }
+    .feed-btn.outlook { background: #0078d4; color: #fff; }
+    .feed-btn.ics { background: #e2e8f0; color: #4a5568; }
 
     .footer { text-align: center; padding: 24px 16px 32px; font-size: 12px; color: #a0aec0; line-height: 1.8; }
     .footer a { color: #718096; text-decoration: underline; }
@@ -89,39 +93,37 @@
       <p style="font-size: 14px; color: #4a5568; margin-bottom: 14px; line-height: 1.5;">
         Subscribe to a seminar series and it shows up in your Google Calendar, Outlook, or Apple Calendar — updated every Monday.
       </p>
-      <div class="feeds-list">
-        <div class="feed-row">
-          <span class="feed-name">Microeconomics</span>
-          <a class="feed-btn" href="/calendar/micro.ics" title="Copy this link and add it as a calendar URL">Add to calendar</a>
-        </div>
-        <div class="feed-row">
-          <span class="feed-name">Environmental Economics</span>
-          <a class="feed-btn" href="/calendar/environmental.ics" title="Copy this link and add it as a calendar URL">Add to calendar</a>
-        </div>
-        <div class="feed-row">
-          <span class="feed-name">Behavioral Economics</span>
-          <a class="feed-btn" href="/calendar/behavioral.ics" title="Copy this link and add it as a calendar URL">Add to calendar</a>
-        </div>
-        <div class="feed-row">
-          <span class="feed-name">Industrial Organization</span>
-          <a class="feed-btn" href="/calendar/io.ics" title="Copy this link and add it as a calendar URL">Add to calendar</a>
-        </div>
-        <div class="feed-row">
-          <span class="feed-name">Colloquium</span>
-          <a class="feed-btn" href="/calendar/colloquium.ics" title="Copy this link and add it as a calendar URL">Add to calendar</a>
-        </div>
-        <div class="feed-row">
-          <span class="feed-name">VATT</span>
-          <a class="feed-btn" href="/calendar/vatt.ics" title="Copy this link and add it as a calendar URL">Add to calendar</a>
-        </div>
-        <div class="feed-row">
-          <span class="feed-name">Trade, Regional &amp; Urban</span>
-          <a class="feed-btn" href="/calendar/trade-urban.ics" title="Copy this link and add it as a calendar URL">Add to calendar</a>
-        </div>
-      </div>
+      <div class="feeds-list" id="feeds-list"></div>
       <p style="font-size: 12px; color: #a0aec0; margin-top: 12px; line-height: 1.5;">
-        Right-click "Add to calendar" &rarr; Copy link &rarr; paste into Google Calendar (<em>Other calendars &rarr; From URL</em>) or your calendar app.
+        Google Calendar and Outlook open directly. The .ics link works with Apple Calendar and other apps.
       </p>
+      <script>
+        var feeds = [
+          ["Microeconomics", "micro"],
+          ["Environmental Economics", "environmental"],
+          ["Behavioral Economics", "behavioral"],
+          ["Industrial Organization", "io"],
+          ["Colloquium", "colloquium"],
+          ["VATT", "vatt"],
+          ["Trade, Regional & Urban", "trade-urban"]
+        ];
+        var base = location.origin + "/calendar/";
+        var list = document.getElementById("feeds-list");
+        feeds.forEach(function(f) {
+          var icsUrl = base + f[1] + ".ics";
+          var gcalUrl = "https://calendar.google.com/calendar/render?cid=" + encodeURIComponent(icsUrl);
+          var outlookUrl = "https://outlook.office.com/calendar/0/addfromweb?url=" + encodeURIComponent(icsUrl) + "&name=" + encodeURIComponent("HGSE: " + f[0]);
+          var row = document.createElement("div");
+          row.className = "feed-row";
+          row.innerHTML = '<span class="feed-name">' + f[0] + '</span>'
+            + '<div class="feed-btns">'
+            + '<a class="feed-btn gcal" href="' + gcalUrl + '" target="_blank">Google</a>'
+            + '<a class="feed-btn outlook" href="' + outlookUrl + '" target="_blank">Outlook</a>'
+            + '<a class="feed-btn ics" href="' + icsUrl + '">.ics</a>'
+            + '</div>';
+          list.appendChild(row);
+        });
+      </script>
     </div>
   </div>
 

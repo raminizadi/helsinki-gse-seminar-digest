@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, request
+from flask import Flask, Response, render_template, request
 
 load_dotenv()  # for local development; Vercel uses env vars from dashboard
 
@@ -99,6 +99,78 @@ def _send_immediate_digest(email: str) -> bool:
     except Exception:
         logger.exception("Failed to send immediate digest to %s", email)
         return False
+
+
+# ---------------------------------------------------------------------------
+# ICS calendar feeds — one per seminar series
+# ---------------------------------------------------------------------------
+
+SERIES = {
+    "micro": "Microeconomics",
+    "environmental": "Environmental Economics",
+    "behavioral": "Behavioral Economics",
+    "io": "Industrial Organization",
+    "colloquium": "Colloquium",
+    "vatt": "VATT",
+    "trade-urban": "Trade, Regional and Urban Economics",
+}
+
+
+@app.route("/calendar/<series>.ics")
+def calendar_feed(series):
+    if series not in SERIES:
+        return render_template("error.html", message="Unknown seminar series."), 404
+
+    category = SERIES[series]
+    events = db.get_upcoming_events()
+
+    from icalendar import Calendar, Event as IcsEvent
+
+    cal = Calendar()
+    cal.add("prodid", "-//Helsinki GSE Seminar Digest//EN")
+    cal.add("version", "2.0")
+    cal.add("x-wr-calname", f"HGSE: {category}")
+    cal.add("x-wr-timezone", "Europe/Helsinki")
+
+    for ev in events:
+        if category not in ev.categories:
+            continue
+
+        ics_event = IcsEvent()
+        ics_event.add("summary", f"{ev.title}" if ev.title != ev.speaker else f"{category}: {ev.speaker}")
+        ics_event.add("uid", f"{ev.event_hash}@helsinki-gse-seminar-digest")
+
+        if ev.start_time:
+            dt_start = datetime.datetime.combine(ev.date, ev.start_time)
+            ics_event.add("dtstart", dt_start)
+            if ev.end_time:
+                dt_end = datetime.datetime.combine(ev.date, ev.end_time)
+                ics_event.add("dtend", dt_end)
+        else:
+            ics_event.add("dtstart", ev.date)
+
+        if ev.location:
+            ics_event.add("location", ev.location)
+
+        desc_parts = []
+        if ev.speaker:
+            line = ev.speaker
+            if ev.institution:
+                line += f" ({ev.institution})"
+            desc_parts.append(line)
+        if ev.description:
+            desc_parts.append(ev.description)
+        desc_parts.append(ev.url)
+        ics_event.add("description", "\n\n".join(desc_parts))
+
+        ics_event.add("url", ev.url)
+        cal.add_component(ics_event)
+
+    return Response(
+        cal.to_ical(),
+        mimetype="text/calendar",
+        headers={"Content-Disposition": f"inline; filename={series}.ics"},
+    )
 
 
 @app.route("/unsubscribe")

@@ -24,7 +24,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: scrape-events --store --limit 30 > /dev/null
+        run: scrape-events --store > /dev/null
 
       - name: Send weekly digests to subscribers
         env:

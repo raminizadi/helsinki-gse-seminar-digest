@@ -11,6 +11,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "sendgrid>=6.0",
     "flask>=3.0",
+    "icalendar>=6.0",
 ]
 
 [project.scripts]

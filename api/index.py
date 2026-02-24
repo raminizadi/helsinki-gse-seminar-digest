@@ -113,6 +113,7 @@ SERIES = {
     "colloquium": "Colloquium",
     "vatt": "VATT",
     "trade-urban": "Trade, Regional and Urban Economics",
+    "labor": "Labor & Public Economics",
 }
 
 
@@ -141,7 +142,7 @@ def calendar_feed(series):
             continue
 
         ics_event = IcsEvent()
-        ics_event.add("summary", f"{ev.title}" if ev.title != ev.speaker else f"{category}: {ev.speaker}")
+        ics_event.add("summary", f"{category}: {ev.speaker}")
         ics_event.add("uid", f"{ev.event_hash}@helsinki-gse-seminar-digest")
 
         if ev.start_time:
@@ -162,6 +163,8 @@ def calendar_feed(series):
             if ev.institution:
                 line += f" ({ev.institution})"
             desc_parts.append(line)
+        if ev.title and ev.title != ev.speaker:
+            desc_parts.append(ev.title)
         if ev.description:
             desc_parts.append(ev.description)
         desc_parts.append(ev.url)

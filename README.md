@@ -1,17 +1,17 @@
-# Helsinki GSE Seminar Digest
+# HGSE Seminar Hub
 
-A fully automated weekly email digest of Helsinki GSE seminar events.
+Weekly email digest and subscribable calendar feeds for Helsinki GSE seminar events.
 
 **Subscribe:** https://helsinki-gse-seminar-digest.vercel.app/
 
-Every Monday at 08:00 Helsinki time, subscribers receive an email listing that week's seminars with one-click **Add to Google Calendar**, **Add to Outlook**, and **Download .ics** buttons for each event.
+Every Monday at 08:00 Helsinki time, subscribers receive an email listing that week's seminars with one-click calendar buttons. You can also subscribe to **live-updating ICS calendar feeds** per seminar series — they show up in Google Calendar, Outlook, or Apple Calendar and update automatically.
 
 ## How it works
 
 1. **Scraper** pulls events from [helsinkigse.fi/events](https://www.helsinkigse.fi/events) using BeautifulSoup
 2. Events are stored in **Supabase** (Postgres)
-3. **GitHub Actions** cron job runs every Monday — scrapes new events, then sends digests to all active subscribers
-4. Subscribers manage themselves via the **Flask app on Vercel** (subscribe, confirm, unsubscribe)
+3. **GitHub Actions** cron job runs every Monday — scrapes all events, sends digests, and refreshes calendar feeds
+4. **Flask app on Vercel** serves the subscribe page, calendar feeds, and handles confirm/unsubscribe
 
 ## Architecture
 
@@ -24,8 +24,8 @@ flowchart LR
     GHA["GitHub Actions\n(weekly cron)"]
     GSE["helsinkigse.fi"]
 
-    User -- "subscribe / confirm / unsubscribe" --> Vercel
-    Vercel -- "read/write subscribers" --> Supabase
+    User -- "subscribe / confirm / unsubscribe\ncalendar feeds (.ics)" --> Vercel
+    Vercel -- "read/write subscribers\nread events" --> Supabase
     Vercel -- "confirmation email" --> SendGrid
     GHA -- "scrape events" --> GSE
     GHA -- "store events, read subscribers" --> Supabase
@@ -39,7 +39,7 @@ flowchart LR
 | Subscribe/unsubscribe | Flask on Vercel | $0 |
 | Database | Supabase (Postgres) | $0 |
 | Transactional email | SendGrid | $0 |
-| Calendar links | Google/Outlook deep links + .ics | — |
+| Calendar feeds | ICS feeds via Flask + `icalendar` | — |
 
 ## Project structure
 
@@ -55,7 +55,7 @@ src/scraper/
   cli.py              # CLI entry point (scrape, store, send-test, send-digests)
 
 api/
-  index.py            # Flask app (Vercel entry point)
+  index.py            # Flask app (Vercel entry point) + ICS calendar feed routes
 
 templates/            # HTML pages (subscribe, success, confirmed, unsubscribed, error)
 
@@ -65,6 +65,25 @@ templates/            # HTML pages (subscribe, success, confirmed, unsubscribed,
 migrations/
   001_initial.sql     # Database schema
 ```
+
+## Calendar feeds
+
+Subscribe to any seminar series and it appears in your calendar, updated every Monday:
+
+| Series | Feed URL |
+|---|---|
+| Microeconomics | `/calendar/micro.ics` |
+| Environmental Economics | `/calendar/environmental.ics` |
+| Behavioral Economics | `/calendar/behavioral.ics` |
+| Industrial Organization | `/calendar/io.ics` |
+| Colloquium | `/calendar/colloquium.ics` |
+| VATT | `/calendar/vatt.ics` |
+| Trade, Regional & Urban | `/calendar/trade-urban.ics` |
+| Labor & Public Economics | `/calendar/labor.ics` |
+
+The subscribe page provides one-click buttons for Google Calendar (via `webcal://`) and Outlook (via `addfromweb`). For desktop Outlook, use the `.ics` link via **Add Calendar > Subscribe from Web**.
+
+Event titles use the format `Series: Speaker`. The description includes the talk title, abstract, and link when available.
 
 ## Subscription flow
 
@@ -106,13 +125,13 @@ Set in `.env` for local dev, in Vercel dashboard for production, and as GitHub A
 | `SECRET_KEY` | HMAC key for signing confirm/unsubscribe tokens |
 | `APP_BASE_URL` | Production URL (https://helsinki-gse-seminar-digest.vercel.app) |
 
-## Email features
+## Email digest features
 
 - Category badges per event (e.g., "Environmental Economics", "PhD Seminar")
-- Calendar titles use "Series: Speaker" format (e.g., "Environmental Economics Seminar: Benjamin Hattemer")
-- Google Calendar, Outlook, and .ics download buttons
+- Google Calendar, Outlook, and .ics download buttons per event
 - Per-subscriber unsubscribe links with HMAC tokens
 - Digest scoped to current week (Monday–Sunday)
+- First digest sent immediately on confirmation
 
 ## Disclaimer
 

@@ -114,6 +114,7 @@ SERIES = {
     "vatt": "VATT",
     "trade-urban": "Trade, Regional and Urban Economics",
     "labor": "Labor & Public Economics",
+    "educa": "Economics of Education (Educa)",
 }
 
 

@@ -2,3 +2,7 @@ requests>=2.31
 beautifulsoup4>=4.12
 lxml>=5.0
 supabase>=2.0
+python-dotenv>=1.0
+sendgrid>=6.0
+flask>=3.0
+icalendar>=6.0

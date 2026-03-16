@@ -58,8 +58,9 @@ def main() -> None:
         print(json.dumps(output, indent=2))
 
         if args.store:
-            from scraper.db import upsert_events
+            from scraper.db import delete_stale_events, upsert_events
             upsert_events(events)
+            delete_stale_events({e.event_hash for e in events})
 
     if args.preview_html or args.send_test:
         from scraper.email_template import render_digest

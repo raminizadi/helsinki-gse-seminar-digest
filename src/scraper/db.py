@@ -66,6 +66,27 @@ def upsert_events(events: list[Event]) -> int:
     return count
 
 
+def delete_stale_events(current_hashes: set[str]) -> int:
+    """Delete future events from the DB that are no longer on the website."""
+    if not current_hashes:
+        logger.warning("No current hashes provided — skipping stale cleanup")
+        return 0
+
+    today = datetime.date.today().isoformat()
+    client = get_client()
+    result = client.table("events").select("event_hash").gte("date", today).execute()
+    db_hashes = {r["event_hash"] for r in (result.data or [])}
+    stale = list(db_hashes - current_hashes)
+    if not stale:
+        logger.info("No stale events to remove")
+        return 0
+
+    client.table("sent_log").delete().in_("event_hash", stale).execute()
+    client.table("events").delete().in_("event_hash", stale).execute()
+    logger.info("Deleted %d stale events", len(stale))
+    return len(stale)
+
+
 def get_upcoming_events(
     from_date: datetime.date | None = None,
     until_date: datetime.date | None = None,
